@@ -2,43 +2,48 @@ import React, {useEffect, useRef, useState} from 'react';
 import './App.css';
 import axios from 'axios';
 
+const baseURL = 'https://users-nodejs-back-end.herokuapp.com/'
 
 function App() {
     const [users, setUsers] = useState<Array<{ _id: string, name: string, banned: boolean }>>([])
     let userNameRef = useRef<HTMLInputElement | null>(null)
-    let userBannedRef = useRef<HTMLInputElement | null>(null)
-
 
 
     const getUsers = () => {
-        axios.get('http://localhost:5000/users/' + window.location.search )
+        axios.get(baseURL + 'users/' + window.location.search)
             .then((res) => {
                 setUsers(res.data)
-
             })
     }
 
     const createUser = () => {
-        axios.post('http://localhost:5000/users/', {
+        axios.post(baseURL + 'users/', {
             name: userNameRef.current?.value,
-            banned: userBannedRef.current?.checked
+            banned: false
         })
             .then(res => {
                     console.log(res.data)
                     getUsers()
                 }
             )
-        userBannedRef.current!.checked = false
         userNameRef.current!.value = '';
     }
 
     const deleteUser = (userId: string) => {
-        axios.delete(`http://localhost:5000/users/${userId}`)
+        axios.delete(baseURL + `users/${userId}`)
             .then(res => {
                     console.log(res.data)
                     getUsers()
                 }
             )
+    }
+
+    const updateUser = (userId: string, name: string, banned: boolean) => {
+        axios.put(baseURL + `users/`, {userId, name, banned})
+            .then(res => {
+                console.log(res.data)
+                getUsers()
+            })
     }
 
     useEffect(() => {
@@ -47,17 +52,29 @@ function App() {
 
     return (
         <div style={{display: 'flex'}}>
-            <div>
-                {users.map(u =>
-                    <div key={u._id}>Name: {u.name},
-                        Banned: <input type={'checkbox'} checked={u.banned}/>
-                        <button onClick={() => deleteUser(u._id)}>X</button>
-                    </div>)
+            <div style={{margin: '10px'}}>
+                {users.map(u => {
+                    return (
+                        <div key={u._id}
+                             style={{margin: '10px'}}>
+                            <span> Name: </span>
+                            <input
+                                defaultValue={u.name}
+                                onBlur={(e) => updateUser(u._id, e.currentTarget.value, u.banned)}>
+                            </input>
+                            <span> Banned: </span>
+                            <input type={'checkbox'}
+                                   onChange={(event) => updateUser(u._id, u.name, event.currentTarget.checked)}
+                                   checked={u.banned}
+                            />
+                            <button onClick={() => deleteUser(u._id)}>X</button>
+                        </div>
+                    )
+                })
                 }
             </div>
-            <div>
+            <div style={{margin: '20px'}}>
                 <input type="text" ref={userNameRef}/>
-                <input type={'checkbox'} ref={userBannedRef}/>
                 <button onClick={createUser}>Add user</button>
             </div>
         </div>
